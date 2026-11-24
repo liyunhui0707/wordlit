@@ -115,7 +115,7 @@ private struct ManualUpdateGuide: View {
             Text("4 · 新版出现问题时，先查看“诊断与反馈”。需要回退则退出新版，从全部版本下载适合芯片的旧包，按相同方式替换；先阅读该版本的兼容说明。")
             Text("不要为升级清空设置、钥匙串密钥、模型或系统权限。临时签名的公开安装包更新后可能需要正常重新授权。")
                 .foregroundStyle(DictionaryStyle.secondary)
-            Link("查看更新与回退指南 ↗", destination: URL(string: "https://github.com/liyunhui0707/dictionary-macos/blob/main/docs/guide.md#更新与回退")!)
+            Link("查看更新与回退指南 ↗", destination: URL(string: "https://github.com/liyunhui0707/wordlit/blob/main/docs/guide.md#更新与回退")!)
         }.font(.system(size: 12)).fixedSize(horizontal: false, vertical: true)
     }
 }

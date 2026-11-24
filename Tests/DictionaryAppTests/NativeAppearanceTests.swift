@@ -176,11 +176,11 @@ struct NativeAppearanceTests {
     func manualUpdateDownloadAndRecoveryScreens() async throws {
         let tag = "v1.2.3", name = "Dictionary-1.2.3-macOS-arm64.dmg"
         let data = try JSONSerialization.data(withJSONObject: ["tag_name": tag,
-            "html_url": "https://github.com/liyunhui0707/dictionary-macos/releases/tag/\(tag)",
+            "html_url": "https://github.com/liyunhui0707/wordlit/releases/tag/\(tag)",
             "draft": false, "prerelease": false,
             "body": "Synthetic release notes\n[Plain text](https://example.invalid)\n" + String(repeating: "Synthetic compatibility note.\n", count: 120),
             "assets": [["name": name, "size": 1234, "browser_download_url":
-                "https://github.com/liyunhui0707/dictionary-macos/releases/download/\(tag)/\(name)"]]])
+                "https://github.com/liyunhui0707/wordlit/releases/download/\(tag)/\(name)"]]])
         let release = try PublicRelease.decode(data)
         let cases: [(String, String, ReleaseArchitecture)] = [
             ("available", "1.0.0", .arm64), ("missing-intel", "1.0.0", .x86_64),
