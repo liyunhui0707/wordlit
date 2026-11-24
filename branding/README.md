@@ -18,9 +18,9 @@ small sizes. The mark has a transparent margin for native app-icon placement.
 | Element | Value |
 | --- | --- |
 | Product / application | Wordlit / `Wordlit.app` |
-| Repository target | `liyunhui0707/wordlit` (rename the existing repository) |
-| New checkout directory | `wordlit` |
-| Future release files | `Wordlit-<version>-macOS-<architecture>.dmg` and `.zip` |
+| Repository | [`liyunhui0707/wordlit`](https://github.com/liyunhui0707/wordlit) (renamed in place) |
+| Checkout directory | `wordlit` |
+| Release files since 0.11.0 | `Wordlit-<version>-macOS-<architecture>.dmg` and `.zip` |
 | Companion display name | Wordlit Lookup |
 | Accent | `#386751` / `#254C3B` |
 | Paper / mark | `#FCFCF4` |
@@ -51,31 +51,58 @@ Public branding is separate from existing storage and protocol identity:
   folder can create a different Chromium extension identity, so it is not claimed
   to preserve browser pairing or shortcuts. Do not force that step during the rename.
 - The updater accepts only the two exact first-party repository paths and both
-  artifact prefixes. On a rename response it may try the fixed new API endpoint;
-  it never follows an arbitrary redirect. New artifacts are preferred when present.
+  artifact prefixes. Current source queries the Wordlit API first; only a 404
+  tries the fixed legacy endpoint. Redirects are never followed. New artifacts
+  are preferred when present. This source cleanup will ship in the next normal
+  release; published 0.11.0 binaries retain their old-first, bounded fallback.
 - Frozen pre-rename archives remain inspectable. Historical release notes, hashes,
   filenames, synthetic acceptance book titles and previously published assets
   stay unchanged. A historical Dictionary binary is never relabelled Wordlit.
-- Preserve the local checkout path during the active session. A fresh clone may
-  use `wordlit`; moving this checkout requires a separate workspace transition.
+- Use `wordlit` for the local checkout directory. Move the existing checkout as
+  a whole, preserving `.git` and ignored local evidence; do not reclone or rewrite
+  historical build records to change their original paths. Reopen editor/workspace
+  entries at the new directory rather than keeping an old-name symlink.
 
-## Public cutover order
+## Completed public cutover
 
-The approved cutover version is Wordlit 0.11.0. Release status follows GitHub
-Releases; every published 0.10.0 Dictionary artifact remains unchanged.
+Wordlit 0.11.0 was delivered on 2026-11-18. The
+[release record](../docs/releases/0.11.0.md) lists artifact verification,
+both-Mac upgrade evidence and the remaining channel limits.
 
-1. Review and integrate the brand/compatibility change through the normal PR and CI.
-2. Choose the next release version explicitly; build and verify its Wordlit artifacts.
-3. Upgrade the daily apps from the approved candidate, retaining rollback and signing
-   continuity. Do not run Dictionary and Wordlit simultaneously: they share identity
-   and the same singleton connection port. Do not reset permissions during migration.
-4. Rename the existing GitHub repository to `wordlit`, preserving history, issues,
-   tags and Releases. Never recreate or reuse `dictionary-macos`: that would break
-   GitHub's redirect. Update the clone remote, README/app links and website links.
-5. Publish the accepted Wordlit release and sync the existing website identity.
-   Old app updaters may reject renamed release URLs, so provide the browser/manual
-   upgrade path in the old release notes before cutover; redirects alone are insufficient.
+| Surface | Result |
+| --- | --- |
+| Initial source integration | [PR #15](https://github.com/liyunhui0707/wordlit/pull/15) merged after required CI; merge `2246411` contains source `f0f3483` |
+| GitHub repository | Original repository renamed to `wordlit`; history, issues, tags and Releases preserved; clone remote uses the new name |
+| Public download | [v0.11.0](https://github.com/liyunhui0707/wordlit/releases/tag/v0.11.0), with Wordlit ZIP, DMG, checksums and provenance manifest |
+| Daily application | `Wordlit.app` on both accepted Macs; existing settings and verified 0.10.0 rollback retained |
+| Website | Existing Site deployed with Wordlit identity and new repository/download links; public audience unchanged |
 
-Repository rename, push/merge, website deployment and daily-app installation are
-distinct operations in the approved batch; their actual results are recorded separately.
-No automatic installation, model change or new permission is introduced.
+The existing [website address](https://dictionary-macos-liyunhui.outerepoch3.chatgpt.site)
+is intentionally retained as a stable compatibility entry. Its old slug is not
+an unfinished product-name replacement. Never recreate or reuse `dictionary-macos`
+on GitHub: that would break the original repository redirect. Older app updaters
+may reject renamed release URLs; their release notes provide the manual browser
+upgrade path.
+
+## Naming closure and retained names
+
+The 2026-11-24 closure migrates the local checkout to `wordlit`, makes current
+update/help source links canonical and fills in the delivery record. It does not
+rebuild, replace or republish 0.11.0, install an app, or redeploy the website.
+
+Remaining old names have explicit purposes:
+
+- **User compatibility:** Bundle IDs, settings keys, Keychain service, token and
+  managed-extension storage paths, plugin/command IDs and connection protocol.
+- **Internal namespace:** `Sources/DictionaryApp`, `Tests/DictionaryAppTests`,
+  Swift targets, executable/resource-bundle names and `DICTIONARY_*` launch/test
+  variables. These are deliberately retained implementation contracts, not public
+  branding; a future internal refactor must assess its own compatibility costs.
+- **Historical evidence:** old release links, tags, filenames, hashes, manifests,
+  synthetic book titles and ignored local acceptance/build records.
+- **Compatibility coverage:** exact legacy repository URLs in updater allowlists
+  and tests. Current UI examples and primary navigation use Wordlit.
+
+New work must not reintroduce the old name into current product labels, primary
+repository links or new artifact filenames. No automatic installer, model change
+or permission reset is part of this closure.
