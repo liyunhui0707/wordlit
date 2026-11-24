@@ -53,8 +53,8 @@ struct PublicRelease: Equatable, Sendable {
     let notes: String
     private let assets: [Asset]
     static let downloads = URL(string: "https://github.com/liyunhui0707/wordlit/releases")!
-    static let endpoint = URL(string: "https://api.github.com/repos/liyunhui0707/dictionary-macos/releases/latest")!
-    static let wordlitEndpoint = URL(string: "https://api.github.com/repos/liyunhui0707/wordlit/releases/latest")!
+    static let endpoint = URL(string: "https://api.github.com/repos/liyunhui0707/wordlit/releases/latest")!
+    private static let legacyEndpoint = URL(string: "https://api.github.com/repos/liyunhui0707/dictionary-macos/releases/latest")!
     private static let repositories = ["liyunhui0707/dictionary-macos", "liyunhui0707/wordlit"]
 
     private static func trustedGitHubURL(_ url: URL, suffix: String) -> Bool {
@@ -122,16 +122,15 @@ struct PublicRelease: Equatable, Sendable {
         }
     }
 
-    /// Only the two fixed first-party endpoints may be tried. Never follow Location.
+    /// Prefer the current repository; only a 404 tries the fixed legacy endpoint. Never follow Location.
     static func fetch(using send: @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse)) async throws -> PublicRelease? {
-        for address in [endpoint, wordlitEndpoint] {
+        for address in [endpoint, legacyEndpoint] {
             var request = URLRequest(url: address)
             request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
             request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
             request.setValue("Wordlit-macOS", forHTTPHeaderField: "User-Agent")
             let (data, response) = try await send(request)
             if response.statusCode == 404 { continue }
-            if address == endpoint && [301, 308].contains(response.statusCode) { continue }
             guard response.statusCode == 200 else { throw ReleaseUpdateError.invalid }
             return try decode(data)
         }

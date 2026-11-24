@@ -4,14 +4,16 @@ import Testing
 
 @MainActor
 struct ReleaseUpdatesTests {
-    @Test func renamedRepositoryFallbackIsBoundedAndNeverFollowsLocation() async throws {
+    @Test func canonicalRepositoryIsFirstAndLegacyFallbackIsBounded() async throws {
         let data = try payload(url: "https://github.com/liyunhui0707/wordlit/releases/tag/v0.3.0")
-        for code in [301, 308, 404] {
-            let source = ReleaseTransport(statuses: [code, 200], data: data)
-            let release = try await PublicRelease.fetch(using: { try await source.send($0) })
-            #expect(release?.version == "v0.3.0")
-            #expect(await source.addresses == [PublicRelease.endpoint, PublicRelease.wordlitEndpoint])
-        }
+        let canonical = try #require(URL(string: "https://api.github.com/repos/liyunhui0707/wordlit/releases/latest"))
+        let legacy = try #require(URL(string: "https://api.github.com/repos/liyunhui0707/dictionary-macos/releases/latest"))
+        let available = ReleaseTransport(statuses: [200], data: data)
+        #expect(try await PublicRelease.fetch(using: { try await available.send($0) })?.version == "v0.3.0")
+        #expect(await available.addresses == [canonical])
+        let fallback = ReleaseTransport(statuses: [404, 200], data: try payload())
+        #expect(try await PublicRelease.fetch(using: { try await fallback.send($0) })?.version == "v0.3.0")
+        #expect(await fallback.addresses == [canonical, legacy])
         let unavailable = ReleaseTransport(statuses: [503], data: data)
         await #expect(throws: (any Error).self) {
             try await PublicRelease.fetch(using: { try await unavailable.send($0) })
@@ -19,12 +21,14 @@ struct ReleaseUpdatesTests {
         #expect(await unavailable.addresses == [PublicRelease.endpoint])
         let absent = ReleaseTransport(statuses: [404, 404], data: data)
         #expect(try await PublicRelease.fetch(using: { try await absent.send($0) }) == nil)
-        #expect(await absent.addresses.count == 2)
-        let redirectLoop = ReleaseTransport(statuses: [301, 301], data: data)
-        await #expect(throws: (any Error).self) {
-            try await PublicRelease.fetch(using: { try await redirectLoop.send($0) })
+        #expect(await absent.addresses == [canonical, legacy])
+        for codes in [[301], [308], [404, 301], [404, 308]] {
+            let redirect = ReleaseTransport(statuses: codes, data: data)
+            await #expect(throws: (any Error).self) {
+                try await PublicRelease.fetch(using: { try await redirect.send($0) })
+            }
+            #expect(await redirect.addresses == Array([canonical, legacy].prefix(codes.count)))
         }
-        #expect(await redirectLoop.addresses.count == 2)
     }
     @Test func wordlitMigrationAcceptsNewAndLegacyReleasesWithoutWideningTrust() throws {
         for repository in ["wordlit", "dictionary-macos"] {
