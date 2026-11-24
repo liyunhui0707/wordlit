@@ -73,7 +73,7 @@ enum BooksScreenFallback {
         case .failed: return rejected(.recognitionFailed)
         case .timedOut: return rejected(.timedOut)
         }
-        guard let sentence = ScreenTextContext.sentence(target:original.target,pointer:after.pointer,lines:lines) else { return rejected(.textUnavailable) }
+        guard let proposal = ScreenTextContext.sentence(target:original.target,pointer:after.pointer,lines:lines) else { return rejected(.textUnavailable) }
         guard let final = await snapshot() else { return rejected(.captureUnavailable) }
         guard after.matches(final), isCurrent(), !Task.isCancelled else { return rejected(.pixelsChanged) }
         guard now() < deadline else { return rejected(.timedOut) }
@@ -83,10 +83,14 @@ enum BooksScreenFallback {
         details.screenContext = .needsConfirmation
         details.screenRecognitionBudgetMilliseconds=recognitionBudgetMilliseconds
         details.screenRecognitionElapsedMilliseconds=recognitionElapsedMilliseconds
+        // Cropping can remove a whole word at a wrap and leave perfectly spelled text.
+        let coversWindowWidth = after.region.minX <= after.windowBounds.minX && after.region.maxX >= after.windowBounds.maxX
+        let sentence = proposal.text
+        let canAutoUse = (!proposal.spansLines || coversWindowWidth) &&
+            ScreenContextSafety.eligible(sentence: sentence, lines: lines, hasSpellingIssue: ScreenContextSafety.hasSpellingIssue)
         return CapturedContext(target:original.target,context:sentence,containingSentence:sentence,diagnostics:details,
             capture:.init(reliability:.heuristic,method:.screenOCR),
-            screenContextCanAutoUse: ScreenContextSafety.eligible(sentence: sentence, lines: lines,
-                hasSpellingIssue: ScreenContextSafety.hasSpellingIssue))
+            screenContextCanAutoUse: canAutoUse)
     }
 }
 
@@ -137,7 +141,7 @@ enum BooksScreenCapture {
         guard let content else { failed(.captureUnavailable); return nil }
         let windows=content.windows.filter { $0.owningApplication?.processID == source.processIdentifier && $0.frame == bounds }
         guard windows.count == 1, let window=windows.first else { failed(.windowUnavailable); return nil }
-        let region=CGRect(x:pointer.x-500,y:pointer.y-180,width:1000,height:360).intersection(bounds)
+        let region = captureRegion(window: bounds, pointer: pointer)
         guard region.width >= 160, region.height >= 80 else { failed(.windowUnavailable); return nil }
         let filter=SCContentFilter(desktopIndependentWindow:window)
         let config=SCStreamConfiguration()
@@ -157,6 +161,14 @@ enum BooksScreenCapture {
         return BooksScreenSnapshot(windowID:window.windowID,windowBounds:bounds,region:crop.region,
             pointer:CGPoint(x:pointer.x-crop.region.minX,y:pointer.y-crop.region.minY),
             digest:Data(SHA256.hash(data:bytes as Data)),image:crop.image)
+    }
+
+    static func captureRegion(window: CGRect, pointer: CGPoint) -> CGRect {
+        // Slide the strip inside the window before cropping. Intersecting a
+        // pointer-centered strip alone can cut the start of the following line.
+        let width = min(window.width, 1000)
+        let left = min(max(window.minX, pointer.x - width / 2), window.maxX - width)
+        return CGRect(x: left, y: pointer.y - 180, width: width, height: 360).intersection(window)
     }
 
     static func localCrop(image:CGImage,window:CGRect,region:CGRect) -> (image:CGImage,region:CGRect)? {
