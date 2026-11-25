@@ -12,7 +12,7 @@ Wordlit 是一款原生 macOS 英汉查词工具。在阅读时选中英文，�
 结合可获取的原句和段落查看中文释义。0.10.0 新增句段完整翻译、
 美式音标参考与点击朗读；主窗口和选词浮窗使用相同任务分流，可手动切换查词／翻译。
 
-下载以 Releases 实际版本为准。功能、质量边界和安装核对范围见 [0.11.0 版本说明](docs/releases/0.11.0.md)。
+下载以 Releases 实际版本为准。功能、质量边界和安装核对范围见 [0.11.1 版本说明](docs/releases/0.11.1.md)。
 
 [官网](https://dictionary-macos-liyunhui.outerepoch3.chatgpt.site) ·
 [版本与下载](https://github.com/liyunhui0707/wordlit/releases) ·
@@ -38,7 +38,7 @@ AI 释义用于辅助理解，可能出现错误。参考词典与 AI 结果分�
 
 ## 安装与开始使用
 
-安装包与最新正式版本以 [GitHub Releases](https://github.com/liyunhui0707/wordlit/releases/latest) 为准。[0.11.0 版本说明](docs/releases/0.11.0.md)列出本版改进、安装核对及已知限制。
+安装包与最新正式版本以 [GitHub Releases](https://github.com/liyunhui0707/wordlit/releases/latest) 为准。[0.11.1 版本说明](docs/releases/0.11.1.md)列出本版改进、安装核对及已知限制。
 
 系统要求为 **macOS 14 或更新版本**。下载时请选择与你的芯片架构相符的安装包。
 正式应用安装包以 Releases 实际列出的资产为准；没有安装包时可按下方步骤从源码构建。

@@ -9,11 +9,9 @@ Wordlit's brand migration follows the [brand and cutover rules](../branding/READ
 Existing Dictionary artifacts remain immutable. Public source, binaries, website
 and both-Mac installation each retain their own verification evidence.
 
-1. The explicitly selected delivery is Wordlit **0.11.0**, Chromium extension **0.2.2**,
-   and Obsidian plugin **0.1.1**. This batch authorizes source PR/CI/review/merge,
-   renaming the existing repository, publishing verified new artifacts, synchronizing
-   the existing website without changing its audience, and both-Mac upgrades with rollback.
-   Future releases need their own version decision; never rebuild a published version in place.
+1. The selected patch release is Wordlit **0.11.1**, with Chromium extension **0.2.2**
+   and Obsidian plugin **0.1.1**. Preserve the installed 0.11.0 for rollback. Each
+   future release needs a version decision. Never overwrite published artifacts.
 2. Run `swift test` and `node --test Tests/QA/*.test.cjs Tests/Extensions/*.test.cjs`.
    Optional live model tests require separately authorized data, credentials and
    call limits. They are off in normal tests. Review semantic results separately.
