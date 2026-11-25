@@ -14,14 +14,14 @@ struct ScreenTextContextTests {
     @Test func pointerAndWordRangesIdentifyEitherOccurrenceOnOneLine() {
         let text="The bank approved a loan. Later, they rested on the bank of the river."
         let lines=[repeatedLine(text)]
-        #expect(ScreenTextContext.sentence(target:"bank",pointer:CGPoint(x:75,y:20),lines:lines)=="The bank approved a loan.")
-        #expect(ScreenTextContext.sentence(target:"bank",pointer:CGPoint(x:615,y:20),lines:lines)=="Later, they rested on the bank of the river.")
+        #expect(ScreenTextContext.sentence(target:"bank",pointer:CGPoint(x:75,y:20),lines:lines)?.text=="The bank approved a loan.")
+        #expect(ScreenTextContext.sentence(target:"bank",pointer:CGPoint(x:615,y:20),lines:lines)?.text=="Later, they rested on the bank of the river.")
     }
 
     @Test func repeatedLineCanContinueToTheNextLineWithUTF16Offsets() {
         let lines=[repeatedLine("“🌳” The bank approved a loan. Later, they rested on the bank"),
                    line("of the river.",y:35,word:"river",x:50)]
-        #expect(ScreenTextContext.sentence(target:"bank",pointer:CGPoint(x:615,y:20),lines:lines)=="Later, they rested on the bank of the river.")
+        #expect(ScreenTextContext.sentence(target:"bank",pointer:CGPoint(x:615,y:20),lines:lines)?.text=="Later, they rested on the bank of the river.")
     }
 
     @Test(arguments:["missingRange","wrongRange","missingWord","duplicateWord","overlap","nearBoth"])
@@ -55,7 +55,7 @@ struct ScreenTextContextTests {
     @Test func pointerIdentifiesSecondOccurrenceAcrossSeparateParagraphs() {
         let lines = [line("The bank approved a loan.", y:10),
                      line("They walked along the bank of the river.", y:80)]
-        #expect(ScreenTextContext.sentence(target:"bank", pointer:CGPoint(x:195,y:90),lines:lines) ==
+        #expect(ScreenTextContext.sentence(target:"bank", pointer:CGPoint(x:195,y:90),lines:lines)?.text ==
                 "They walked along the bank of the river.")
     }
 
@@ -63,8 +63,19 @@ struct ScreenTextContextTests {
         let lines = [line("They walked along the bank",y:10),
                      line("of the river.",y:35,word:"river",x:50),
                      line("She deposited savings at the bank.",y:10,left:650)]
-        #expect(ScreenTextContext.sentence(target:"bank",pointer:CGPoint(x:195,y:20),lines:lines) ==
+        #expect(ScreenTextContext.sentence(target:"bank",pointer:CGPoint(x:195,y:20),lines:lines)?.text ==
                 "They walked along the bank of the river.")
+    }
+
+    @Test func wrapDetectionUsesOnlyTheSelectedSentence() {
+        let paragraph = [line("The bridge was closed. Later, they", y: 10, word: "bridge"),
+                         repeatedLine("met at the bank. The bank reopened.", y: 35)]
+        let first = ScreenTextContext.sentence(target: "bank", pointer: CGPoint(x: 75, y: 45), lines: paragraph)
+        #expect(first?.text == "Later, they met at the bank.")
+        #expect(first?.spansLines == true)
+        let second = ScreenTextContext.sentence(target: "bank", pointer: CGPoint(x: 615, y: 45), lines: paragraph)
+        #expect(second?.text == "The bank reopened.")
+        #expect(second?.spansLines == false)
     }
 
     @Test(arguments:["farPointer","ambiguousAnchor","lowConfidence","fragment","repeatedSentence","substring","tooMany","badGeometry"])
@@ -82,11 +93,11 @@ struct ScreenTextContextTests {
         case "badGeometry": pointer=CGPoint(x:CGFloat.nan,y:20)
         default: break
         }
-        #expect(ScreenTextContext.sentence(target:"bank",pointer:pointer,lines:lines) == nil)
+        #expect(ScreenTextContext.sentence(target:"bank",pointer:pointer,lines:lines)?.text == nil)
     }
 
     @Test func missingBeginningAndDistantParagraphAreNotPatchedTogether() {
         let lines=[line("The bank opened",y:10),line("and closed later.",y:110,word:"later")]
-        #expect(ScreenTextContext.sentence(target:"bank",pointer:CGPoint(x:195,y:20),lines:lines)==nil)
+        #expect(ScreenTextContext.sentence(target:"bank",pointer:CGPoint(x:195,y:20),lines:lines)?.text==nil)
     }
 }

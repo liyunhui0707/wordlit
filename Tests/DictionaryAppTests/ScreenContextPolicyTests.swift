@@ -65,7 +65,9 @@ struct ScreenContextPolicyTests {
         let corrected = "The company repaired the bridge after the storm."
         #expect(coordinator.confirmScreenContext(id, editedContext: corrected))
         let call = await provider.waitForCall("company")
-        #expect(call.context.contains(corrected))
+        let document = try #require(JSONSerialization.jsonObject(with: Data(call.context.utf8)) as? [String: Any])
+        #expect(document["context_text"] as? String == corrected)
+        #expect(call.sentence == corrected)
         #expect(!coordinator.confirmScreenContext(id, editedContext: corrected))
         await provider.succeed(call)
         let next = coordinator.beginCapture(); coordinator.finishCapture(next, request: request(eligible: false))

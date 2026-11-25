@@ -19,7 +19,12 @@ struct ScreenTextLine {
 
 /// OCR is a proposed reading of visible pixels, never an exact native selection.
 enum ScreenTextContext {
-    static func sentence(target: String, pointer: CGPoint, lines: [ScreenTextLine]) -> String? {
+    struct Sentence {
+        let text: String
+        let spansLines: Bool
+    }
+
+    static func sentence(target: String, pointer: CGPoint, lines: [ScreenTextLine]) -> Sentence? {
         guard target.range(of: "^[A-Za-z]+(?:['’-][A-Za-z]+)*$", options:.regularExpression) != nil,
               target.utf16.count <= 64, pointer.x.isFinite, pointer.y.isFinite, lines.count <= 200 else { return nil }
         func valid(_ rect: CGRect) -> Bool {
@@ -65,14 +70,16 @@ enum ScreenTextContext {
         let text = paragraph.map { lines[$0].text }.joined(separator:" ")
         let prefix = paragraph.prefix(while: { $0 != anchor.line }).reduce(0) { $0+lines[$1].text.utf16.count+1 }
         let selected = NSRange(location:prefix+anchor.range.location,length:anchor.range.length)
-        var sentence: String?
+        var sentence: Sentence?
         (text as NSString).enumerateSubstrings(in:NSRange(location:0,length:text.utf16.count), options:.bySentences) { raw,range,_,_ in
             guard range.location <= selected.location, NSMaxRange(range) >= NSMaxRange(selected), let raw else { return }
-            let candidate=SelectionLocation.trim(raw)
-            guard occurrences(target,in:candidate).count == 1,
+            let trimmed = SelectionLocation.trimmedSpan(raw)
+            guard let candidate = trimmed.slice(in: raw), occurrences(target,in:candidate).count == 1,
                   candidate.range(of:"^[\"“'‘(]*[A-Z]",options:.regularExpression) != nil,
                   candidate.range(of:"[.!?][\"'”’)\\]]*$",options:.regularExpression) != nil else { return }
-            sentence=candidate
+            let spansLines = range.location + trimmed.start < prefix ||
+                range.location + trimmed.end > prefix + base.text.utf16.count
+            sentence = Sentence(text: candidate, spansLines: spansLines)
         }
         return sentence
     }

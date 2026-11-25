@@ -230,3 +230,13 @@ swift test --filter DictionaryQualityTests/recordLocalQualityResponses
 ARPAbet 转换是宽式美式参考，不冒充权威学习词典音标。
 发音仅使用已安装的自然 Apple en-US 语音，排除趣味及个人语音；无语音时给出提示，不自动下载。
 测试替身覆盖播放／停止与缺少语音；实际声音听感和跨机语音可用性应分别记录，不能由按钮存在推断。
+
+## Books 跨行原句（0.11.0 之后的开发回归）
+
+合成书页在第一行两次出现 `company`，第二处所在的句子在 `after` 后换行，下一行以 `the storm.` 开头。
+在本机用生产裁剪和 macOS Vision 读取这张内存图像，旧实现得到 `after storm.`。
+调整识别区域的位置后，同一张图可读出完整的 `Later, the company repaired the bridge after the storm.`。
+
+宽窗口中，若屏幕原句横跨两行且裁剪未覆盖整个窗口宽度，即使允许自动使用，也会进入可编辑预览。
+测试另行核对了翻页后丢弃旧语境，以及确认编辑后查询服务收到的上下文和原句均为修改后的文字。
+这组验证覆盖截图裁剪、识别、取句和提交。Books 实机快捷键和模型句译质量沿用各自的验收记录。

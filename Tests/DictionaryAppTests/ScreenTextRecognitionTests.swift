@@ -31,6 +31,59 @@ struct ScreenTextRecognitionTests {
     }
 
     @MainActor
+    @Test func cropKeepsTheAvailableReadingWidthNearEitherWindowEdge() {
+        let window = CGRect(x: -1100, y: 50, width: 1024, height: 800)
+        for (offset, expectedLeft) in [(60, 0), (512, 12), (617, 24), (980, 24)] {
+            let pointer = CGPoint(x: window.minX + CGFloat(offset), y: 390)
+            let region = BooksScreenCapture.captureRegion(window: window, pointer: pointer)
+            #expect(region == CGRect(x: window.minX + CGFloat(expectedLeft), y: 210, width: 1000, height: 360))
+        }
+    }
+
+    @MainActor
+    @Test func wrappedCompanySentenceSurvivesTheProductionCropAndVision() async throws {
+        let window = CGRect(x: 0, y: 0, width: 1000, height: 360)
+        let bitmap = try #require(CGContext(data: nil, width: 2000, height: 720, bitsPerComponent: 8,
+            bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        bitmap.scaleBy(x: 2, y: 2)
+        bitmap.setFillColor(CGColor(gray: 1, alpha: 1))
+        bitmap.fill(window)
+        let attributes: [NSAttributedString.Key: Any] = [
+            NSAttributedString.Key(kCTFontAttributeName as String): CTFontCreateWithName("Helvetica" as CFString, 24, nil),
+            NSAttributedString.Key(kCTForegroundColorAttributeName as String): CGColor(gray: 0, alpha: 1)]
+        let first = "The company opened a laboratory. Later, the company repaired the bridge after"
+        let second = "the storm. The project ended on Friday."
+        let left: CGFloat = 60
+        var pointer = CGPoint.zero
+        for (text, baseline) in [(first, CGFloat(200)), (second, CGFloat(170))] {
+            let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
+            bitmap.textPosition = CGPoint(x: left, y: baseline)
+            CTLineDraw(line, bitmap)
+            if text == first {
+                let selected = (text as NSString).range(of: "company", options: .backwards)
+                let middle = CTLineGetOffsetForStringIndex(line, selected.location + 4, nil)
+                pointer = CGPoint(x: left + middle, y: window.height - baseline - 9)
+            }
+        }
+        let region = BooksScreenCapture.captureRegion(window: window, pointer: pointer)
+        let image = try #require(bitmap.makeImage())
+        let crop = try #require(BooksScreenCapture.localCrop(image: image, window: window, region: region))
+        let snapshot = BooksScreenSnapshot(windowID: 1, windowBounds: window, region: crop.region,
+            pointer: CGPoint(x: pointer.x - crop.region.minX, y: pointer.y - crop.region.minY), digest: Data(), image: crop.image)
+        let recognized = await ScreenTextRecognition.recognize(snapshot: snapshot, target: "company", timeout: 30)
+        guard case .recognized(let lines) = recognized else { Issue.record("Vision failed on synthetic text"); return }
+        let firstLine = try #require(lines.first { $0.text == first })
+        let secondLine = try #require(lines.first { $0.text == second })
+        let proposal = ScreenTextContext.sentence(target: "company", pointer: snapshot.pointer, lines: lines)
+        if min(firstLine.confidence, secondLine.confidence) >= 0.85 {
+            #expect(proposal?.text == "Later, the company repaired the bridge after the storm.")
+            #expect(proposal?.spansLines == true)
+        } else {
+            #expect(proposal == nil)
+        }
+    }
+
+    @MainActor
     @Test func windowLocalCropOwnsOnlyTheRequestedPixelsAcrossNegativeDisplayOrigins() throws {
         func image(outside:CGFloat) throws -> CGImage {
             let bitmap=try #require(CGContext(data:nil,width:400,height:200,bitsPerComponent:8,bytesPerRow:1600,
@@ -76,7 +129,7 @@ struct ScreenTextRecognitionTests {
         // Vision's confidence calibration differs between macOS versions. A
         // correct string is still insufficient evidence below the product gate.
         if river.confidence >= 0.85 {
-            #expect(sentence == "They walked along the bank of the river.")
+            #expect(sentence?.text == "They walked along the bank of the river.")
         } else {
             #expect(sentence == nil)
         }
@@ -88,7 +141,7 @@ struct ScreenTextRecognitionTests {
         let repeatedSentence=ScreenTextContext.sentence(target:"bank",
             pointer:CGPoint(x:second.bounds.midX,y:second.bounds.midY),lines:lines)
         if repeated.confidence >= 0.85 {
-            #expect(repeatedSentence == "They deposited money at the bank.")
+            #expect(repeatedSentence?.text == "They deposited money at the bank.")
         } else {
             #expect(repeatedSentence == nil)
         }
@@ -102,7 +155,7 @@ struct ScreenTextRecognitionTests {
         #expect(croppedRiver.text == "They walked along the bank of the river.")
         let croppedSentence=ScreenTextContext.sentence(target:"bank",pointer:cropped.pointer,lines:croppedLines)
         if croppedRiver.confidence >= 0.85 {
-            #expect(croppedSentence == "They walked along the bank of the river.")
+            #expect(croppedSentence?.text == "They walked along the bank of the river.")
         } else {
             #expect(croppedSentence == nil)
         }

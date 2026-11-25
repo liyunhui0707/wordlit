@@ -35,6 +35,20 @@ struct BooksScreenFallbackTests {
         #expect(result.diagnostics.screenRecognitionElapsedMilliseconds == 3500)
     }
 
+    @Test(arguments: [false, true])
+    func wrappedSentenceNeedsReviewWhenTheCaptureCutsTheReadingWidth(fullWidth: Bool) async throws {
+        let region = CGRect(x: fullWidth ? 0 : 100, y: 20, width: 1000, height: 360)
+        let snapshot = BooksScreenSnapshot(windowID: 1, windowBounds: CGRect(x: 0, y: 0, width: fullWidth ? 1000 : 1200, height: 500),
+            region: region, pointer: CGPoint(x: 195, y: 20), digest: Data([1]), image: nil)
+        let first = ScreenTextLine(text: "They waited at the bank", bounds: CGRect(x: 10, y: 10, width: 220, height: 20),
+            confidence: 1, words: [.init(text: "bank", bounds: CGRect(x: 180, y: 10, width: 45, height: 20))])
+        let last = ScreenTextLine(text: "after lunch.", bounds: CGRect(x: 10, y: 35, width: 100, height: 20), confidence: 1, words: [])
+        let result = try await BooksScreenFallback.capture(enabled: true, isBooks: true, permission: true, nativeHasSentence: false,
+            isCurrent: { true }, snapshot: { snapshot }, native: { targetOnly }, recognize: { _, _, _ in .recognized([first, last]) })
+        #expect(result.containingSentence == "They waited at the bank after lunch.")
+        #expect(result.screenContextCanAutoUse == fullWidth)
+    }
+
     @Test func spentCaptureBudgetPreservesNativeTextWithoutStartingRecognition() async throws {
         var time: TimeInterval = 0
         var recognitionCalls = 0
