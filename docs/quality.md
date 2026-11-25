@@ -240,3 +240,18 @@ ARPAbet 转换是宽式美式参考，不冒充权威学习词典音标。
 宽窗口中，若屏幕原句横跨两行且裁剪未覆盖整个窗口宽度，即使允许自动使用，也会进入可编辑预览。
 测试另行核对了翻页后丢弃旧语境，以及确认编辑后查询服务收到的上下文和原句均为修改后的文字。
 这组验证覆盖截图裁剪、识别、取句和提交。Books 实机快捷键和模型句译质量沿用各自的验收记录。
+
+### 0.11.1 两个翻译入口的忠实度对照
+
+冻结 8 个合成原句，前四条检查时间关系、否定、收费与搭配，后四条独立复核时间关系、数量、多义词与搭配。每条使用同一英文走 Ollama 的查词句译、整句翻译两个生产入口。每个模型、每个提示各 16 次，合计 64 次，均返回了句译。逐条核对原意与查词主释义。
+
+| 模型 | 原设置 | 增加忠实度约束的候选 |
+| --- | --- | --- |
+| qwen2.5:7b | 修桥句在整句入口保留了时间关系；查词句译把时间修饰到桥梁上。两入口都未准确翻译两名工人还钥匙的否定范围，展翅的鹤被译成起重机。 | 修桥的查词句译多出“受损”。鹤在查词入口得到纠正，整句入口仍错；还钥匙的整句译文仍丢失否定。 |
+| qwen3.5:9b-q4_K_M | 两入口都保留了修桥时间和还钥匙的否定；两入口都把展翅的鹤译成了起重机。 | 修桥时间、否定及盒子数量保留；两入口的鹤仍误译。没有观察到足以推广的新收益。 |
+
+候选只在两个任务的系统提示末尾增加以下文字，其他生成设置沿用生产值：
+
+> In the Chinese sentence translation, preserve only what the English states. Keep time order distinct from cause. Do not add a reason, a damaged state, or a result merely because it sounds plausible. Preserve the scope of negation and quantities, and translate expressions and ambiguous nouns according to their role in the complete sentence.
+
+候选未通过。生产提示、模型路由和默认选择沿用原设置。每个条件只运行一轮，结果描述本组观察，不能推断总体准确率。合成用例和请求路径见 ReadingFidelityTests。
